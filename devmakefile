@@ -1,0 +1,30 @@
+TOP=..
+RUNIT_DIR=$(shell pwd)
+INST_PATH=$(shell dirname $(RUNIT_DIR))
+PKG_PATH=${RUNIT_DIR}
+#INSTALL_FLAGS='--clean'
+INSTALL_FLAGS=--clean --preclean --debug
+
+all: install
+
+full: version build install check
+
+install:
+	cd ${TOP} && \
+	R CMD INSTALL ${INSTALL_FLAGS} ${PKG_PATH} && \
+	cd ${RUNIT_DIR}
+
+build:
+	cd ${TOP}; \
+	R CMD build ${PKG_PATH} && \
+	cd ${RUNIT_DIR}
+
+check:
+	cd ${TOP}; \
+	R CMD check ${PKG_PATH} && \
+	cd ${RUNIT_DIR}
+
+# targets are DESCRIPTION man/clst-package.Rd
+version:
+	python version.py
+

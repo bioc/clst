@@ -1,0 +1,36 @@
+import(lattice)
+import(ROC)
+
+## classes
+exportClasses(
+
+              )
+
+exportMethods(
+
+              )
+
+## functions
+export(
+       ## partition.R
+       partition,
+
+       ## findThreshold.R
+       findThreshold,
+       plotDistances,
+       plotMutinfo,
+
+       ## classify.R
+       classifier,
+       classify,
+       classifyIter,
+       printClst,
+       pull,
+       pullTab,
+       
+       ## scaleDistPlot.R
+       ## getGlyphs,
+       scaleDistPlot       
+       )
+
+

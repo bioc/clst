@@ -1,0 +1,372 @@
+%\VignetteIndexEntry{clst}
+%\VignetteKeywords{clst, classifier, ROC}
+%\VignettePackage{clst}
+
+
+%
+% NOTE -- ONLY EDIT THE .Rnw FILE!!!  The .tex file is
+% likely to be overwritten.
+%
+\documentclass[10pt]{article}
+
+\usepackage{amsmath,pstricks}
+\usepackage[authoryear,round]{natbib}
+\usepackage{hyperref}
+\usepackage{subfigure}
+
+% all figures at end of document
+% \usepackage{endfloat}
+
+%%%% NOT the default vignette page layout
+\usepackage[margin=2cm]{geometry}
+\geometry{letterpaper}
+
+%%%% part of default vignette page layout (or at least, it came from somewhere)
+% \textwidth=6.2in
+% \textheight=8.5in
+% %\parskip=.3cm
+% \oddsidemargin=.1in
+% \evensidemargin=.1in
+% \headheight=-.3in
+
+\newcommand{\scscst}{\scriptscriptstyle}
+\newcommand{\scst}{\scriptstyle}
+
+\newcommand{\Rfunction}[1]{{\texttt{#1}}}
+\newcommand{\Robject}[1]{{\texttt{#1}}}
+\newcommand{\Rpackage}[1]{{\textit{#1}}}
+\newcommand{\Rmethod}[1]{{\texttt{#1}}}
+\newcommand{\Rfunarg}[1]{{\texttt{#1}}}
+\newcommand{\Rclass}[1]{{\textit{#1}}}
+\newcommand{\code}[1]{{\texttt{#1}}}
+
+\bibliographystyle{plainnat}
+
+\begin{document}
+%\setkeys{Gin}{width=0.55\textwidth}
+%\setkeys{Gin}{width=8in}
+
+% figures saved in ./figs; create if necessary below
+<<echo=FALSE>>=
+  figdir <- 'figs_out'
+  dir.create(figdir, showWarnings=FALSE)
+@
+\SweaveOpts{prefix.string=\Sexpr{figdir}/clst,eps=FALSE}
+
+\title{\Rpackage{clst} demo}
+\author{Noah Hoffman}
+\maketitle
+
+\tableofcontents
+
+\section{Introduction}
+
+\Rpackage{clst} performs supervised classification using a
+modified nearest-neighbor approach. This vignette demonstrates its use.
+
+\subsection{Definition of symbols}
+
+Consider a set of $N$ objects that can be grouped into $K$ classes
+with class labels $c_m, m \in 1...K$. Each object may be compared to
+another to generate a pairwise distance $d_{i,j}$. Additional symbol
+definitions are as follows:
+
+\vspace{1em}
+\begin{center}
+\begin{tabular}{r p{10cm}}
+ $d^w$ &  all within-class pairwise distances.\\
+ $d^b$ & all between-class pairwise distances.\\
+ $d^w_m$ & within-group distances among members of class $m$.\\
+ $d_{x,i \in 1...N}$ & distances between object $x$ and each object in
+ the reference set. \\
+ $d_{x,i\in c_m}$ &  distances between query object $x$ and each
+     object belonging to class $c_m$.\\
+ $D$ & A value defining an optimal separation between within-class
+ comparisons and between-class comparisons. In general, therefore, we would
+ expect $d^w < D < d^b$.
+\end{tabular}
+\end{center}
+\vspace{1em}
+
+Given these definitions, we can further define a match score $s$ to
+describe the confidence that object $x$ is a member of class $c_m$ as follows:
+
+\begin{equation*}
+  s_{x,m} = \frac{d_{x,i \in c_m} < D}{d_{x,i \in 1...N} + d}
+\end{equation*}
+
+We include a small offset $d$ in the denominator to prevent
+over-weighting match scores for small groups. Thus if $d=0.5$, a query
+object with all $d_{x,m} < D$ will have a match score of $1/1+0.5
+\approx 0.66$ for a class with a single member.
+
+We can define an additional parameter $C$ as the value of $s_{x,c_m}$
+above which object $x$ is classified as a member of class
+$c_m$. (Note: $C$ is defined by the \texttt{minScore} argument to the
+function \texttt{classify}.
+
+\subsection{Classification outcomes}
+
+Classification of an object $x$ can be performed by considering the
+values of $s_{x,m}$ for all classes represented in a reference
+set. Possible outcomes of classification might include an unequivocal
+\textit{match} with a single class; \textit{confusion} between two or
+more possible classes; \textit{no match}, which reflects confidence
+that the object can \textit{not} be placed into any of the represented
+classes; or evidence that the object is a clear
+\textit{outlier}. Given the simple case of two classes $A$ and $B$ and
+four query objects $w$, $x$, $y$, and $z$ (illustrated in
+Figure~\ref{fig:matchtypes}, we might define these outcomes as
+follows:
+
+\begin{figure}[h]
+  \centering
+ \fbox{\includegraphics{matchtypes.pdf}}
+  \caption[Classification scenarios]{Members of classes A
+    and B lie within respectively labeled circles; points w, x, y, and
+    z indicate unclassified objects.}
+\label{fig:matchtypes}
+\end{figure}
+
+\begin{description}
+\item[match (point $w$)]
+  $\begin{cases}
+    s_{w,A} > C \\
+    s_{w,B} < C
+  \end{cases}$
+\item[confusion (point $x$)]
+  $\begin{cases}
+    s_{x,A} > C \\
+    s_{x,B} > C
+  \end{cases}$
+\item[no match (point $y$)]
+  $\begin{cases}
+    s_{y,A} < C \\
+    s_{y,B} < C \\
+    d_{y,i \in 1...N} < some \; d^b
+  \end{cases}$
+\item[outlier (point $z$)]
+    $\begin{cases}
+    s_{z,A} < C \\
+    s_{z,B} < C \\
+    d_{y,i \in 1...N} > most \; d^b
+  \end{cases}$
+\end{description}
+
+Described in the context of the function \Rfunction{classify},
+classification is performed as follows. The arguments \code{minScore}
+and \code{doffset} provide the parameters $C$ and $d$,
+respectively. On each iteration of the classification algorithm,
+pairwise distances in the reference set are defined as either within-
+or between-group based on the labels in \code{groups}. A threshold
+partitioning these two categories is determined as the point of
+maximal mutual information. If classification results in confusion
+between two or more categories, pairwise distances among objects in
+these remaining categories will be re-partitioned, and a new threshold
+determined. The \code{maxDepth} parameter defines the maximum number
+of times this re-partitioning may occur.
+
+\section{Iris example}
+
+Create a distance matrix (\texttt{dmat}) using the Iris data set,
+which describes phenotypic characteristics of three flower species. We
+also define a factor (\texttt{groups}) that associates each of the
+samples in the data set with one of three Iris species.
+
+<<>>=
+library(clst)
+data(iris)
+dmat <- as.matrix(dist(iris[,1:4], method="euclidean"))
+groups <- iris$Species
+@
+
+The relationship among objects in the Iris data set can be illustrated
+using multidimensional scaling. The function \texttt{scaleDistPlot}
+creates an annotated scatterplot of the output of \texttt{cmdscale}.
+
+\begin{figure}[p!]
+  \centering
+<<fig=TRUE>>=
+ii <- c(1,125)
+plot(scaleDistPlot(dmat, groups, indices=ii,O=ii))
+@
+\caption[Visualization of the Iris data set using multidimensional
+  scaling.]{Visualization of the Iris data set using multidimensional
+  scaling. Objects to be classified in the examples below are
+  indicated.}
+  \label{fig:scaleDistPlot}
+\end{figure}
+
+
+We can calculate $D$ as the value that results in maximal mutual
+information between the vector classifying distances as ``within'' or
+``between'' and the vector indicating if the corresponding pairwise
+distance is greater than or less than $D$ (method=``mutinfo''). This
+is the default method used by the classifier.
+
+<<>>=
+thresh <- findThreshold(dmat, groups, type="mutinfo")
+str(thresh)
+@
+
+By default, $D$ has a lower and upper bound defined as the minimum of
+the between-class distances and maximum of the within-class
+distances. One can also set the upper and lower bounds of $D$ as some
+quantile of the within class distances and between-class differences,
+respectively using the \texttt{prob} argument (the default is 0.5);
+the constraint can be removed by setting \code{prob=NA}
+
+<<>>=
+thresh2 <- findThreshold(dmat, groups, type="mutinfo", prob=NA)
+print(thresh2$interval)
+@
+
+In this example, setting alternative bounds for $D$ does not alter the
+results.
+
+The plot method for the thresh object illustrates the
+underlying calculations performed using either method
+
+<<fig=TRUE, height=3>>=
+plot(do.call(plotDistances, thresh))
+@
+
+<<fig=TRUE, height=3>>=
+plot(do.call(plotDistances, thresh2))
+@
+
+This data set contains two classes (that is, flower species) that are
+closely related, and one more distantly related to the other
+two. Therefore the performance of a single $D$ for predicting inter-
+versus intra-class distances is rather poor.
+
+\subsection{Classification of selected items}
+
+The function \texttt{classify} implements the classification
+algorithm. Inputs to the function include a square matrix of distances
+and a factor of class labels (\texttt{dmat} and \texttt{groups}) as
+well as \texttt{dvect}, a vector containing distances between
+the sample to be classified and each of the reference objects.
+
+The classification algorithm requires the two parameters, $C$ and
+$d$, which are provided to \texttt{classify} as arguments
+\texttt{minScore} and \texttt{doffset}.
+
+The more important of the two parameters, \texttt{minScore}, defines
+the score cutoff for group membership; that is, if an unknown sample
+has a proportion of similarity scores $>$ \texttt{minScore} when
+compared to reference samples in a given class, it is considered a
+match for that class. We will experiment with the effect of changing
+the value of \texttt{minScore} later.
+
+\texttt{doffset} is used in the calculation of the match score; its
+purpose is to reduce the weight of scores resulting from matches to
+members of a group with very few members. Thus with the default value of
+\texttt{doffset}=0.5, if a query object has a distance $< D$ to an
+object in a group of size 1, the resulting score is $1/(1 + 0.5) = 0.66$.
+
+To provide an artificial example, we can remove a single sample from
+the Iris data and perform classification using the remaining samples
+as a reference set.
+
+<<>>=
+ind <- 1
+species <- gettextf('I. %s', groups[ind])
+cat('class of "unknown" sample is',species)
+dmat1 <- dmat[-ind,-ind]
+groups1 <- groups[-ind]
+dvect1 <- dmat[ind, -ind]
+cc <- classify(dmat1, groups1, dvect1)
+printClst(cc)
+@
+
+The query sequence is a member of the species \textit{I. setosa},
+which is relatively divergent from the other two, so our classifier
+performs well on the first try.
+
+Classification of members of the other two Iris species present a more
+challenging case:
+
+<<>>=
+ind <- 125
+species = gettextf('I. %s', groups[ind])
+pp <- pull(dmat, groups, ind)
+cc <- do.call(classify, pp)
+cat(paste('class of "unknown" sample is', species))
+printClst(cc)
+@
+
+\subsection{Leave-one-out analysis}
+
+The performance of the classifier for a data set using a given set of
+parameters can be examined using a leave-one-out analysis. The list
+\Robject{loo} contains the results of the final iteration of
+classification for each object in the iris data set.
+
+<<>>=
+loo <- lapply(seq_along(groups), function(i){
+  do.call(classify, pull(dmat, groups, i))
+})
+matches <- lapply(loo, function(x) rev(x)[[1]]$matches)
+result <- sapply(matches, paste, collapse='-')
+table(ifelse(result=='','no match',result),groups)
+@
+
+Note that there is some confusion between versicolor and
+virginica. The objects that could not be assigned to a single taxon
+are indicated in Figure~\ref{fig:confusion45}.
+
+\begin{figure}[p!]
+  \centering
+<<fig=TRUE>>=
+ confusion <- sapply(matches, length) > 1
+ no_match <- sapply(matches, length) < 1
+ plot(scaleDistPlot(dmat, groups, fill=confusion, O=confusion, X=no_match))
+@
+\caption[MDS plot of a leave-one-out analysis.]{Visualization of the
+  Iris data set using multidimensional scaling. Objects with a
+  classification output of confusion are filled and indicated with a
+  circle.}
+  \label{fig:confusion45}
+\end{figure}
+
+The specificity of the classifier can be improved by increasing the
+value of \code{minScore}, at the cost of a decrease in
+sensitivity (Figure~\ref{fig:confusion65}).
+
+<<>>=
+
+loo <- lapply(seq_along(groups), function(i){
+ do.call(classify, c(pull(dmat, groups, i),minScore=0.65))
+})
+
+matches <- lapply(loo, function(x) rev(x)[[1]]$matches)
+result <- sapply(matches, paste, collapse='-')
+table(ifelse(result=='','no match',result),groups)
+@
+
+\begin{figure}[p!]
+  \centering
+<<fig=TRUE>>=
+ confusion <- sapply(matches, length) > 1
+ no_match <- sapply(matches, length) < 1
+ plot(scaleDistPlot(dmat, groups, fill=confusion, O=confusion,
+                    X=no_match, indices=no_match))
+@
+\caption[MDS plot of leave-one-out analysis,
+\texttt{minScore=0.65}]{Visualization of the Iris data set using
+  multidimensional scaling. Objects with a classification output of
+  confusion are filled and indicated with a circle. Unclassified items
+  are crossed out. Here \texttt{minScore=0.65}}
+  \label{fig:confusion65}
+\end{figure}
+
+Finally, we can see a summary of the classification results of an item
+for which the result was ``no match.'' 
+
+<<>>=
+printClst(loo[[118]])
+@ 
+
+
+\end{document}

@@ -1,0 +1,8 @@
+\.aux$
+\.log$
+\.out$
+\.toc$
+inst/doc/figs
+tests/profile/unit_output
+tests/unit_output
+version.py

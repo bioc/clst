@@ -41,7 +41,7 @@ Maintainer: <ngh2@uw.edu>
 \keyword{ package }
 \keyword{ classif }
 \seealso{
-\code{\link[stats]{cmdscale}}, \code{\link{clstutils}}
+\code{\link[stats]{cmdscale}}
 }
 \examples{
 library(clst)

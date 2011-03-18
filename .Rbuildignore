@@ -3,6 +3,9 @@
 \.out$
 \.toc$
 inst/doc/figs
+inst/doc/Sweave.sty
+inst/doc/devmakefile
+inst/doc/Rplots.pdf
 tests/profile/unit_output
 tests/unit_output
 version.py

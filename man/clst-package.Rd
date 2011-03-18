@@ -15,14 +15,8 @@ from between-group comparisons.}
 \tabular{ll}{
 Package: \tab clst\cr
 Type: \tab Package\cr
-Version: \tab 0.1.5256\cr
-Date: \tab 2011-03-14\cr
-Depends: \tab R (>= 2.10.0), methods\cr
-Imports: \tab ROCR, lattice\cr
-LazyLoad: \tab yes\cr
-LazyData: \tab yes\cr
-License: \tab Public domain\cr
-Built: \tab R 2.12.2; ; 2011-03-14; unix\cr
+License: \tab GPL-3\cr
+Author: \tab Noah Hoffman <ngh2@uw.edu>\cr 
 }
 
 Index:
@@ -47,10 +41,11 @@ Maintainer: <ngh2@uw.edu>
 \keyword{ package }
 \keyword{ classif }
 \seealso{
-\code{\link[stats]{cmdscale}}
+\code{\link[stats]{cmdscale}}, \code{\link{clstutils}}
 }
 \examples{
 library(clst)
+packageDescription("clst")
 data(iris)
 dmat <- as.matrix(dist(iris[,1:4], method="euclidean"))
 groups <- iris$Species

@@ -217,6 +217,10 @@ classifyIter <- function(dmat, groupTab, dvect, dStart=NA,
 
   } ## end loop
 
+  if(verbose){
+    printClst(cc)
+  }
+
   return(cc)
 
 }

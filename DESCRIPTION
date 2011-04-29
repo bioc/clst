@@ -8,7 +8,7 @@ Suggests: RUnit
 LazyLoad: yes
 LazyData: yes
 Author: Noah Hoffman
-Maintainer: Noah Hoffman <ngh2@u.washington.edu>
+Maintainer: Noah Hoffman <ngh2@uw.edu>
 Description: Package for modified nearest-neighbor classification based on calculation of a similarity threshold distinguishing within-group from between-group comparisons.
 License: GPL-3
 biocViews: Classification

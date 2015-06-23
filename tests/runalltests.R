@@ -17,4 +17,4 @@ testData <- runTestSuite(allSuite)
 
 printTextProtocol(testData, showDetails=TRUE)
 
-q(runLast=FALSE)
+#q(runLast=FALSE)

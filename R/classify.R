@@ -416,7 +416,8 @@ getTally <- function(dvect, groups, bkpt, minScore, doffset, empty=FALSE){
   ss <- split(x=dvect, f=groups)
 
   ## drop=FALSE preserves rownames when length(tt) == 1
-  tally <- data.frame(below=tt[,'below',drop=FALSE],above=tt[,'above',drop=FALSE])
+  tally <- data.frame(below=unclass(tt)[,'below',drop=FALSE],
+                      above=unclass(tt)[,'above',drop=FALSE])
 
   ## score each match
   tally$score <- apply(tally,

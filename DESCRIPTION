@@ -1,7 +1,7 @@
 Package: clst
 Type: Package
 Title: Classification by local similarity threshold
-Version: 1.20.0
+Version: 1.21.0
 Depends: R (>= 2.10)
 Imports: ROC, lattice
 Suggests: RUnit
